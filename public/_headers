@@ -18,7 +18,11 @@
 /*.mp3
   Cache-Control: public, max-age=2592000, stale-while-revalidate=604800
 
-# JSON data files — moderate cache (data may update between deploys)
+# pages.json — changes on every deploy, keep cache short
+/data/pages.json
+  Cache-Control: public, max-age=300, stale-while-revalidate=60
+
+# Other JSON data files — moderate cache
 /data/*
   Cache-Control: public, max-age=86400, stale-while-revalidate=604800
 
