@@ -17,19 +17,48 @@ useSeoMeta({
 
 const search = ref('')
 
-const allMembers = computed(() => {
-  const members = Array.from(getAllAuthors().values())
-  members.sort((a, b) => {
-    if (b.apps.length !== a.apps.length) return b.apps.length - a.apps.length
-    return a.author.localeCompare(b.author)
-  })
-  return members
-})
+type SortMode = 'apps' | 'name'
+const sortBy = ref<SortMode>('apps')
+const sortAsc = ref(false)
+
+function toggleSort(mode: SortMode) {
+  if (sortBy.value === mode) {
+    sortAsc.value = !sortAsc.value
+  } else {
+    sortBy.value = mode
+    sortAsc.value = false
+  }
+}
+
+const sortLabels: Record<SortMode, [string, string]> = {
+  apps: ['Nhiều nhất', 'Ít nhất'],
+  name: ['A → Z', 'Z → A'],
+}
+
+const sortIcons: Record<SortMode, [string, string]> = {
+  apps: ['lucide:arrow-down-wide-narrow', 'lucide:arrow-up-wide-narrow'],
+  name: ['lucide:arrow-down-a-z', 'lucide:arrow-up-z-a'],
+}
+
+const allMembers = computed(() => Array.from(getAllAuthors().values()))
 
 const filteredMembers = computed(() => {
   const q = search.value.trim().toLowerCase()
-  if (!q) return allMembers.value
-  return allMembers.value.filter((m) => m.author.toLowerCase().includes(q))
+  const list = q
+    ? allMembers.value.filter((m) => m.author.toLowerCase().includes(q))
+    : [...allMembers.value]
+  const dir = sortAsc.value ? -1 : 1
+
+  if (sortBy.value === 'name') {
+    list.sort((a, b) => dir * a.author.localeCompare(b.author))
+  } else {
+    list.sort((a, b) => {
+      if (b.apps.length !== a.apps.length) return dir * (b.apps.length - a.apps.length)
+      return a.author.localeCompare(b.author)
+    })
+  }
+
+  return list
 })
 </script>
 
@@ -49,18 +78,37 @@ const filteredMembers = computed(() => {
         {{ allMembers.length }} thành viên đã đóng góp ứng dụng trên vibe.j2team.org
       </p>
 
-      <!-- Search -->
-      <div class="mt-8 relative">
-        <Icon
-          icon="lucide:search"
-          class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-dim"
-        />
-        <input
-          v-model="search"
-          type="text"
-          placeholder="Tìm thành viên..."
-          class="w-full sm:w-80 pl-10 pr-4 py-2.5 bg-bg-surface border border-border-default text-text-primary text-sm font-display tracking-wide placeholder:text-text-dim focus:outline-none focus:border-accent-coral transition-colors"
-        />
+      <!-- Search & Sort -->
+      <div class="mt-8 flex flex-wrap items-center gap-3">
+        <div class="relative">
+          <Icon
+            icon="lucide:search"
+            class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-dim"
+          />
+          <input
+            v-model="search"
+            type="text"
+            placeholder="Tìm thành viên..."
+            class="w-full sm:w-80 pl-10 pr-4 py-2.5 bg-bg-surface border border-border-default text-text-primary text-sm font-display tracking-wide placeholder:text-text-dim focus:outline-none focus:border-accent-coral transition-colors"
+          />
+        </div>
+
+        <div class="flex gap-1">
+          <button
+            v-for="mode in ['apps', 'name'] as const"
+            :key="mode"
+            class="inline-flex items-center gap-1.5 px-3 py-2.5 text-sm font-display tracking-wide border transition-colors"
+            :class="
+              sortBy === mode
+                ? 'border-accent-coral bg-accent-coral/10 text-accent-coral'
+                : 'border-border-default bg-bg-surface text-text-dim hover:border-border-hover hover:text-text-secondary'
+            "
+            @click="toggleSort(mode)"
+          >
+            <Icon :icon="sortIcons[mode][sortBy === mode && sortAsc ? 1 : 0]" class="w-4 h-4" />
+            {{ sortLabels[mode][sortBy === mode && sortAsc ? 1 : 0] }}
+          </button>
+        </div>
       </div>
 
       <!-- Members grid -->
